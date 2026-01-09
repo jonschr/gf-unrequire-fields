@@ -23,6 +23,15 @@ class GWUnrequire {
 	public function __construct() {
 		add_filter( 'gform_pre_validation', array( $this, 'unrequire_fields' ) );
 		add_filter( 'gform_get_form_filter', array( $this, 'add_admin_notice' ), 10, 2 );
+		add_filter( 'gform_required_legend', array( $this, 'change_required_legend' ), 10, 2 );
+		add_filter( 'gform_field_content', array( $this, 'change_required_indicator' ), 10, 5 );
+	}
+
+	/**
+	 * Check if fields should be unrequired for current user
+	 */
+	function should_unrequire() {
+		return current_user_can( 'activate_plugins' ) && ! isset( $_GET['require'] );
 	}
 
 	function unrequire_fields( $form ) {
@@ -43,6 +52,25 @@ class GWUnrequire {
 		}
 
 		return $form;
+	}
+
+	function change_required_legend( $legend, $form ) {
+		if ( ! $this->should_unrequire() ) {
+			return $legend;
+		}
+
+		return str_replace( 'required field', 'not required (admin mode)', $legend );
+	}
+
+	function change_required_indicator( $content, $field, $value, $lead_id, $form_id ) {
+		if ( ! $this->should_unrequire() ) {
+			return $content;
+		}
+
+		// Replace the required indicator text
+		$content = str_replace( '(Required)', '(Not required)', $content );
+		
+		return $content;
 	}
 
 	function add_admin_notice( $form_string, $form ) {
